@@ -33,14 +33,18 @@ jobs:
       - name: Sync to S3
         if: github.repository_owner == 'trustwallet'
         shell: bash
+        # Security: Use environment variables to prevent template injection
+        # Workflow inputs are extracted to env: to avoid direct interpolation in shell commands
+        env:
+          USE_SIZE_ONLY: ${{ github.event.inputs.use-size-only }}
+          AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
         run: |
           SYNC_OPTIONS="--follow-symlinks --delete --exclude '*' --include 'dapps/*' --include 'blockchains/*'"
-          if [ "${{ github.event.inputs.use-size-only }}" == "true" ]; then
+          # Reference env vars directly instead of using ${{ }} template expressions
+          if [ "$USE_SIZE_ONLY" == "true" ]; then
             SYNC_OPTIONS="$SYNC_OPTIONS --size-only"
           fi
           eval "aws s3 sync . s3://$AWS_S3_BUCKET $SYNC_OPTIONS"
-        env:
-          AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
 
       - name: Get changed files
         uses: jitterbit/get-changed-files@v1
